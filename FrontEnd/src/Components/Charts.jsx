@@ -2,24 +2,33 @@
 import React, { useState, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
+import 'highcharts/modules/accessibility';
+
 import axios from 'axios';
 
 const Charts = () => {
     const [chartData, setChartData] = useState([]);
+    const [selectedMonth, setSelectedMonth] = useState('01');
+    const categories = ['0-100', '100-200', '200-300', '300-400', '400-500', '500-600', '600-700', '700-800', '800-900', '901+'];
 
-    // Fetch your chart data when the component mounts
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:1000/charts'); 
+                const response = await axios.get('roxiler.com/product_transaction.json');
                 const data = response.data;
 
-                // Ensure transformedData corresponds to your expected structure
-                const transformedData = categories.map((category) => {
-                    // Find the value for the current category
-                    const item = data.find(item => item.category === category);
-                    return item ? item.value : 0; // Use 0 if no data found
+                const monthData = data.filter((item) => {
+                    const date = new Date(item.dateOfSale);
+                    return date.getMonth() + 1 === parseInt(selectedMonth);
                 });
+
+            const transformedData = categories.map((range) => {
+                if (range === '901+') {
+                    return monthData.filter((item) => item.price > 900).length;
+                }
+                const [min, max] = range.split('-').map(Number);
+                return monthData.filter((item) => item.price >= min && item.price < max).length;
+            });
 
                 setChartData(transformedData);
             } catch (error) {
@@ -28,90 +37,99 @@ const Charts = () => {
         };
 
         fetchData();
-    }, []);
+    }, [selectedMonth]);
 
-    // Define your categories (price ranges)
-    const categories = ['0-100', '100-200', '200-300', '300-400', '400-500', '500-600', '600-700', '700-800', '800-900', '900-1000'];
-
-    // Highcharts options
     const chartOptions = {
+        accessibility: {
+            enabled: false
+        },
         chart: {
-            type: 'column', // Change to 'bar' if you want a bar chart
-            width: 700, // Adjust the width of the chart
-            backgroundColor: '#2c2c2c' // Dark background color
+          type: 'column',
+          height: 420,  
+          width: 800,   
+          spacingTop: 20, 
+          spacingBottom: 0, 
+          spacingLeft: 20, 
+          spacingRight: 20, 
+          style: {
+            fontFamily: 'Arial, sans-serif'
+          },
+         
         },
         title: {
-            text: 'Your Chart Title', // Customize the title as needed
-            style: {
-                color: '#ffffff' // Title text color
-            }
+          text: `Bar Chart Status : ${selectedMonth}` ,
+          style: { color: 'rgba(0,0,0)' }
+
         },
+        // show categories and percentages one below one using html 
         xAxis: {
-            categories: categories, // Set the defined categories for x-axis
-            title: {
-                text: 'Price Ranges', // Customize the x-axis title as needed
-                style: {
-                    color: '#ffffff' // X-axis title color
-                }
-            },
-            tickmarkPlacement: 'on', // Adjusts the placement of ticks
-            labels: {
-                autoRotation: false, // Prevent automatic rotation of labels
-                style: {
-                    color: '#ffffff' // Label color
-                }
-            }
+            categories: categories,
+
+            title: { text: 'Price Ranges', style: { color: 'rgba(0,0,0,1)' } },
+            tickmarkPlacement: 'off',
+            gridLineWidth: 0,
+            labels: { style: { color: 'rgba(0,0,0,1)' } }
         },
         yAxis: {
-            title: {
-                text: 'Number of Items',
-                style: {
-                    color: '#ffffff' // Y-axis title color
-                }
-            },
-            min: 2, // Start the y-axis at 0
-            tickInterval: -10, // Set the interval for y-axis ticks
-            labels: {
-                formatter: function() {
-                    return this.value; // Show the value as is
-                },
-                style: {
-                    color: '#ffffff' // Y-axis label color
-                }
-            }
+          allowDecimals: false,
+          title: {
+            text: ''
+          },
+          lineWidth: 2,  
+          lineColor: '#ADADAD' , 
+              // y axis scale mark 
+          gridLineWidth: 0,
+          max: 20,
+          tickInterval: 5,    
         },
         series: [
-            {
-                name: '',
-                data: chartData,
-                colorByPoint: true,
-                // Change colors of the columns
-                // colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+          {
+            name: '',
+            data: chartData,
+            color: 'rgba(0, 255, 255, 0.5)',
+            marker: {
+                enabled: false // Disable markers
             }
-        ],
+          }],
+              
         plotOptions: {
             series: {
-                borderWidth: 0,
+                borderWidth: 1,
                 dataLabels: {
                     enabled: true,
-                    style: {
-                        color: '#ffffff' // Data label color
-                    }
-                }
+                    style: { color: '#ffffff' },
+                     y: 0, 
+                     
+                    },
+                    pointWidth: 60 ,// Set the desired width for the bars
+                    pointPadding: 0.8, // Adjust the spacing between bars within a category
+                    groupPadding: 2,
             }
         },
         legend: {
-            itemStyle: {
-                color: '#ffffff' // Legend item color
-            }
-        },
-    };
-
+            itemStyle: { color: '#ffffff' }
+        }    
+      };
     return (
-        <div>
-            <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+        <div className='border border-info' >
+            <div className="d-flex justify-content-center mt-5">
+            <select onChange={(e) => setSelectedMonth(e.target.value)} value={selectedMonth} className=''  >
+                <option  value="01">January  </option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            </div>  
+             <HighchartsReact highcharts={Highcharts} options={chartOptions} />
         </div>
     );
 };
-
 export default Charts;
